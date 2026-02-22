@@ -32,3 +32,6 @@ A comprehensive, private health dashboard to track vitals, laboratory results, n
 2. **Access:** `http://localhost:8130` or `http://IP_OF_DOCKER_SERVER:8130`
 
 *Created for privacy-focused health management.*
+
+<img width="1256" height="859" alt="Dashboard" src="https://github.com/user-attachments/assets/2fe12835-f1fc-4a09-aab0-d776b09d256c" />
+<img width="1253" height="859" alt="Analytics" src="https://github.com/user-attachments/assets/43cd7dbf-a3fa-48e5-ac83-054095a5d5d4" />
