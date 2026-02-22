@@ -1,0 +1,29 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8130:5000"
+    volumes:
+      - uploads:/app/uploads
+      - export:/app/export
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/labdata
+      - SECRET_KEY=your_secret_key_here
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=labdata
+    ports:
+      - "2345:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  uploads:
+  export:
