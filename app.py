@@ -27,6 +27,9 @@ class Marker(db.Model):
     min_norm = db.Column(db.Float)
     max_norm = db.Column(db.Float)
 
+    def to_dict(self):
+        return {'id': self.id, 'name': self.name, 'unit': self.unit or '', 'min_norm': self.min_norm or '', 'max_norm': self.max_norm or ''}
+
 class LabValue(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False)
@@ -64,9 +67,36 @@ class WeightEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.DateTime, nullable=False)
     weight = db.Column(db.Float, nullable=False)
+    fat_percentage = db.Column(db.Float)
+    bmi = db.Column(db.Float)
+    skeletal_muscle = db.Column(db.Float)
+    muscle_mass = db.Column(db.Float)
+    protein = db.Column(db.Float)
+    bmr = db.Column(db.Float)
+    fat_free_mass = db.Column(db.Float)
+    subcutaneous_fat = db.Column(db.Float)
+    visceral_fat = db.Column(db.Float)
+    body_water = db.Column(db.Float)
+    bone_mass = db.Column(db.Float)
     
     def to_dict(self):
-        return {'id': self.id, 'type': 'weight', 'date': self.date.strftime('%Y-%m-%d'), 'weight': self.weight}
+        return {
+            'id': self.id, 
+            'type': 'weight', 
+            'date': self.date.strftime('%Y-%m-%d'), 
+            'weight': self.weight,
+            'fat_percentage': self.fat_percentage,
+            'bmi': self.bmi,
+            'skeletal_muscle': self.skeletal_muscle,
+            'muscle_mass': self.muscle_mass,
+            'protein': self.protein,
+            'bmr': self.bmr,
+            'fat_free_mass': self.fat_free_mass,
+            'subcutaneous_fat': self.subcutaneous_fat,
+            'visceral_fat': self.visceral_fat,
+            'body_water': self.body_water,
+            'bone_mass': self.bone_mass
+        }
 
 class Steps(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -117,9 +147,12 @@ class Profile(db.Model):
 
 class Medication(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(100), nullable=False, unique=True)
     unit = db.Column(db.String(50)) # e.g. "Tabletten", "Tropfen"
     common_dose = db.Column(db.String(100)) # e.g. "1, 2, 0.5"
+
+    def to_dict(self):
+        return {'id': self.id, 'name': self.name, 'unit': self.unit or '', 'common_dose': self.common_dose or ''}
 
 class MedicationEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -280,7 +313,21 @@ def add_vital():
 
 @app.route('/add_weight', methods=['POST'])
 def add_weight():
-    db.session.add(WeightEntry(date=parse_date_str(request.form['weight_date']), weight=safe_float(request.form['weight_val'])))
+    db.session.add(WeightEntry(
+        date=parse_datetime_str(request.form['weight_date'], request.form.get('weight_time', '00:00')), 
+        weight=safe_float(request.form['weight_val']),
+        fat_percentage=safe_float(request.form.get('fat_percentage')),
+        bmi=safe_float(request.form.get('bmi')),
+        skeletal_muscle=safe_float(request.form.get('skeletal_muscle')),
+        muscle_mass=safe_float(request.form.get('muscle_mass')),
+        protein=safe_float(request.form.get('weight_protein')),
+        bmr=safe_float(request.form.get('bmr')),
+        fat_free_mass=safe_float(request.form.get('fat_free_mass')),
+        subcutaneous_fat=safe_float(request.form.get('subcutaneous_fat')),
+        visceral_fat=safe_float(request.form.get('visceral_fat')),
+        body_water=safe_float(request.form.get('body_water')),
+        bone_mass=safe_float(request.form.get('bone_mass'))
+    ))
     db.session.commit(); return redirect(url_for('index'))
 
 @app.route('/add_steps', methods=['POST'])
@@ -300,9 +347,80 @@ def add_activity():
     db.session.add(Activity(date=parse_datetime_str(request.form['date'], request.form['time']), type=request.form['act_type'], duration_min=safe_int(request.form['act_duration']), distance_km=safe_float(request.form.get('act_distance')), source='manual'))
     db.session.commit(); return redirect(url_for('index'))
 
+@app.route('/get_entry/<string:model_type>/<int:id>')
+def get_entry(model_type, id):
+    model_map = {
+        'lab': LabValue, 'vital': VitalValue, 'weight': WeightEntry, 
+        'steps': Steps, 'food': FoodEntry, 'activity': Activity, 
+        'medication': MedicationEntry, 'sleep': SleepEntry, 'mood': MoodEntry,
+        'marker': Marker, 'med_def': Medication
+    }
+    Model = model_map.get(model_type)
+    if not Model: return jsonify({'error': 'Invalid type'}), 400
+    obj = Model.query.get_or_404(id)
+    return jsonify(obj.to_dict())
+
+@app.route('/edit_entry/<string:model_type>/<int:id>', methods=['POST'])
+def edit_entry(model_type, id):
+    model_map = {
+        'lab': LabValue, 'vital': VitalValue, 'weight': WeightEntry, 
+        'steps': Steps, 'food': FoodEntry, 'activity': Activity, 
+        'medication': MedicationEntry, 'sleep': SleepEntry, 'mood': MoodEntry,
+        'marker': Marker, 'med_def': Medication
+    }
+    Model = model_map.get(model_type)
+    if not Model: return redirect(url_for('index'))
+    obj = Model.query.get_or_404(id)
+    
+    if model_type == 'lab':
+        obj.date = parse_date_str(request.form['date'])
+        obj.name = request.form['name']; obj.value = safe_float(request.form['value']); obj.unit = request.form.get('unit')
+        obj.min_norm = safe_float(request.form.get('min_norm')); obj.max_norm = safe_float(request.form.get('max_norm'))
+    elif model_type == 'marker':
+        obj.name = request.form['name']; obj.unit = request.form.get('unit')
+        obj.min_norm = safe_float(request.form.get('min_norm')); obj.max_norm = safe_float(request.form.get('max_norm'))
+    elif model_type == 'med_def':
+        obj.name = request.form['name']; obj.unit = request.form.get('unit'); obj.common_dose = request.form.get('common_dose')
+    elif model_type == 'vital':
+        obj.date = parse_datetime_str(request.form['date'], request.form['time'])
+        obj.value_sys = safe_int(request.form['sys']); obj.value_dia = safe_int(request.form['dia']); obj.value_pulse = safe_int(request.form['pulse'])
+    elif model_type == 'weight':
+        obj.date = parse_datetime_str(request.form['weight_date'], request.form.get('weight_time', '00:00'))
+        obj.weight = safe_float(request.form['weight_val']); obj.fat_percentage = safe_float(request.form.get('fat_percentage'))
+        obj.bmi = safe_float(request.form.get('bmi')); obj.skeletal_muscle = safe_float(request.form.get('skeletal_muscle'))
+        obj.muscle_mass = safe_float(request.form.get('muscle_mass')); obj.protein = safe_float(request.form.get('weight_protein'))
+        obj.bmr = safe_float(request.form.get('bmr')); obj.fat_free_mass = safe_float(request.form.get('fat_free_mass'))
+        obj.subcutaneous_fat = safe_float(request.form.get('subcutaneous_fat')); obj.visceral_fat = safe_float(request.form.get('visceral_fat'))
+        obj.body_water = safe_float(request.form.get('body_water')); obj.bone_mass = safe_float(request.form.get('bone_mass'))
+    elif model_type == 'steps':
+        obj.date = parse_date_str(request.form['steps_date']); obj.count = safe_int(request.form['steps_count'])
+    elif model_type == 'food':
+        obj.date = parse_date_str(request.form['food_date']); obj.description = request.form['food_desc']
+        obj.calories = safe_int(request.form.get('food_cal')); obj.protein = safe_float(request.form.get('food_pro'))
+        obj.carbs = safe_float(request.form.get('food_carb')); obj.fat = safe_float(request.form.get('food_fat'))
+    elif model_type == 'activity':
+        obj.date = parse_datetime_str(request.form['date'], request.form['time']); obj.type = request.form['act_type']
+        obj.duration_min = safe_int(request.form['act_duration']); obj.distance_km = safe_float(request.form.get('act_distance'))
+    elif model_type == 'sleep':
+        obj.date = parse_date_str(request.form['date']).date()
+        obj.duration_hours = safe_float(request.form['duration']); obj.quality = safe_int(request.form['quality'])
+    elif model_type == 'mood':
+        obj.date = parse_date_str(request.form['date'])
+        obj.mood_score = safe_int(request.form['mood']); obj.energy_score = safe_int(request.form['energy']); obj.notes = request.form['notes']
+    elif model_type == 'medication':
+        obj.date = parse_date_str(request.form['date'])
+        obj.amount = request.form.get('amount_custom') or request.form.get('amount_select')
+
+    db.session.commit(); return redirect(url_for('index'))
+
 @app.route('/delete_entry/<string:model_type>/<int:id>', methods=['POST'])
 def delete_entry(model_type, id):
-    model_map = {'lab': LabValue, 'vital': VitalValue, 'weight': WeightEntry, 'steps': Steps, 'food': FoodEntry, 'activity': Activity, 'marker': Marker, 'medication': MedicationEntry, 'sleep': SleepEntry, 'mood': MoodEntry}
+    model_map = {
+        'lab': LabValue, 'vital': VitalValue, 'weight': WeightEntry, 
+        'steps': Steps, 'food': FoodEntry, 'activity': Activity, 
+        'marker': Marker, 'medication': MedicationEntry, 'sleep': SleepEntry, 
+        'mood': MoodEntry, 'med_def': Medication
+    }
     Model = model_map.get(model_type)
     if Model: db.session.delete(Model.query.get_or_404(id)); db.session.commit()
     return redirect(url_for('index'))
@@ -366,7 +484,20 @@ def generate_pdf():
             data_by_date[d_str].append({'text': clean(text), 'time': d_obj.strftime('%H:%M') if hasattr(d_obj, 'strftime') else "00:00"})
         for x in LabValue.query.all(): add(x.date, f"Labor: {x.name}={x.value}{x.unit}", "L")
         for x in VitalValue.query.all(): add(x.date, f"Vital: {x.value_sys}/{x.value_dia} Puls:{x.value_pulse}", "V")
-        for x in WeightEntry.query.all(): add(x.date, f"Gewicht: {x.weight}kg", "W")
+        for x in WeightEntry.query.all(): 
+            details = [f"Gewicht: {x.weight}kg"]
+            if x.fat_percentage: details.append(f"Fett: {x.fat_percentage}%")
+            if x.bmi: details.append(f"BMI: {x.bmi}")
+            if x.skeletal_muscle: details.append(f"Skelettmuskeln: {x.skeletal_muscle}%")
+            if x.muscle_mass: details.append(f"Muskelmasse: {x.muscle_mass}kg")
+            if x.protein: details.append(f"Protein: {x.protein}%")
+            if x.bmr: details.append(f"Grundumsatz: {x.bmr}kcal")
+            if x.fat_free_mass: details.append(f"Fettfreie Masse: {x.fat_free_mass}kg")
+            if x.subcutaneous_fat: details.append(f"Subkutanes Fett: {x.subcutaneous_fat}%")
+            if x.visceral_fat: details.append(f"Viszerales Fett: {x.visceral_fat}")
+            if x.body_water: details.append(f"Körperwasser: {x.body_water}%")
+            if x.bone_mass: details.append(f"Knochenmasse: {x.bone_mass}kg")
+            add(x.date, " | ".join(details), "W")
         for x in Steps.query.all(): add(x.date, f"Schritte: {x.count}", "S")
         for x in MoodEntry.query.all(): add(x.date, f"Mood: {x.mood_score}/10", "M")
         for x in SleepEntry.query.all(): add(datetime.combine(x.date, datetime.min.time()), f"Schlaf: {x.duration_hours}h", "SL")
@@ -382,6 +513,18 @@ with app.app_context():
     db.create_all()
     # Simple migration hack for existing installations
     try:
+        cols = [
+            ("fat_percentage", "FLOAT"), ("bmi", "FLOAT"), ("skeletal_muscle", "FLOAT"),
+            ("muscle_mass", "FLOAT"), ("protein", "FLOAT"), ("bmr", "FLOAT"),
+            ("fat_free_mass", "FLOAT"), ("subcutaneous_fat", "FLOAT"), ("visceral_fat", "FLOAT"),
+            ("body_water", "FLOAT"), ("bone_mass", "FLOAT")
+        ]
+        for col_name, col_type in cols:
+            try:
+                db.session.execute(db.text(f"ALTER TABLE weight_entry ADD COLUMN {col_name} {col_type}"))
+            except Exception:
+                pass # Column likely already exists
+        
         db.session.execute(db.text("ALTER TABLE medication ADD COLUMN IF NOT EXISTS unit VARCHAR(50)"))
         db.session.execute(db.text("ALTER TABLE medication ADD COLUMN IF NOT EXISTS common_dose VARCHAR(100)"))
         db.session.commit()

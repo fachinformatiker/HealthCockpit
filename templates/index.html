@@ -65,6 +65,7 @@
             <button class="nav-link" id="lab-tab" data-bs-toggle="pill" data-bs-target="#lab" type="button"><i class="bi bi-droplet"></i><span class="nav-text">Laborwerte</span></button>
             <button class="nav-link" id="vital-tab" data-bs-toggle="pill" data-bs-target="#vital" type="button"><i class="bi bi-heart-pulse"></i><span class="nav-text">Vitalwerte</span></button>
             <button class="nav-link" id="weight-tab" data-bs-toggle="pill" data-bs-target="#weight" type="button"><i class="bi bi-speedometer"></i><span class="nav-text">Gewicht</span></button>
+            <button class="nav-link" id="steps-tab" data-bs-toggle="pill" data-bs-target="#steps" type="button"><i class="bi bi-footprints"></i><span class="nav-text">Schritte</span></button>
             <button class="nav-link" id="med-tab" data-bs-toggle="pill" data-bs-target="#med" type="button"><i class="bi bi-capsule"></i><span class="nav-text">Medikamente</span></button>
             <button class="nav-link" id="sleep-tab" data-bs-toggle="pill" data-bs-target="#sleep" type="button"><i class="bi bi-moon-stars"></i><span class="nav-text">Schlaf</span></button>
             <button class="nav-link" id="mood-tab" data-bs-toggle="pill" data-bs-target="#mood" type="button"><i class="bi bi-emoji-smile"></i><span class="nav-text">Stimmung</span></button>
@@ -136,22 +137,73 @@
                             <div class="col-6"><input type="number" step="0.01" name="max_norm" id="lab_max" class="form-control" placeholder="Max"></div>
                             <button class="btn btn-primary">Save</button>
                         </form>
-                    </div></div></div>
-                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>Name</th><th>Wert</th><th>Status</th><th style="width:50px"></th></tr></thead><tbody>{% for i in labs %}<tr><td class="ps-3">{{ i.date.strftime('%d.%m.%Y') }}</td><td>{{ i.name }}</td><td>{{ i.value }} {{ i.unit }}</td><td>{% if i.min_norm and i.max_norm %}{% set r = i.max_norm - i.min_norm %}{% set p = ((i.value - i.min_norm) / r) * 50 + 25 %}<div class="range-bar-container"><div class="range-bar-norm"></div><div class="range-dot" style="left: {{ p }}%; background: {{ '#51cf66' if i.value >= i.min_norm and i.value <= i.max_norm else '#ff6b6b' }};"></div></div>{% endif %}</td><td><form action="/delete_entry/lab/{{ i.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></td></tr>{% endfor %}</tbody></table></div></div></div>
+                    </div></div>
+                    <div class="card mt-3"><div class="card-header">Marker verwalten</div><div class="card-body p-0">
+                        <table class="table table-sm small mb-0">
+                            <thead><tr><th class="ps-3">Name</th><th>Einheit</th><th style="width:70px"></th></tr></thead>
+                            <tbody>
+                                {% for m in markers %}
+                                <tr>
+                                    <td class="ps-3">{{ m.name }}</td>
+                                    <td>{{ m.unit }}</td>
+                                    <td>
+                                        <div class="d-flex gap-1">
+                                            <button class="btn btn-link btn-sm text-primary p-0" onclick="openEditModal('marker', {{ m.id }})"><i class="bi bi-pencil"></i></button>
+                                            <form action="/delete_entry/marker/{{ m.id }}" method="POST">
+                                                <button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div></div>
+                    </div>
+                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>Name</th><th>Wert</th><th>Status</th><th style="width:70px"></th></tr></thead><tbody>{% for i in labs %}<tr><td class="ps-3">{{ i.date.strftime('%d.%m.%Y') }}</td><td>{{ i.name }}</td><td>{{ i.value }} {{ i.unit }}</td><td>{% if i.min_norm and i.max_norm %}{% set r = i.max_norm - i.min_norm %}{% set p = ((i.value - i.min_norm) / r) * 50 + 25 %}<div class="range-bar-container"><div class="range-bar-norm"></div><div class="range-dot" style="left: {{ p }}%; background: {{ '#51cf66' if i.value >= i.min_norm and i.value <= i.max_norm else '#ff6b6b' }};"></div></div>{% endif %}</td><td><div class="d-flex gap-1"><button class="btn btn-link btn-sm text-primary p-0" onclick="openEditModal('lab', {{ i.id }})"><i class="bi bi-pencil"></i></button><form action="/delete_entry/lab/{{ i.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></div></td></tr>{% endfor %}</tbody></table></div></div></div>
                 </div>
             </div>
 
             <div class="tab-pane fade" id="vital" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-md-4"><div class="card"><div class="card-header">Messung</div><div class="card-body"><form action="/add_vital" method="POST" class="row g-3"><input type="date" name="date" class="form-control" value="{{ now.strftime('%Y-%m-%d') }}"><input type="time" name="time" class="form-control" value="{{ now.strftime('%H:%M') }}"><input type="number" name="sys" class="form-control" placeholder="Sys"><input type="number" name="dia" class="form-control" placeholder="Dia"><input type="number" name="pulse" class="form-control" placeholder="Puls"><button class="btn btn-warning w-100">Log</button></form></div></div></div>
-                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>RR</th><th>Puls</th><th style="width:50px"></th></tr></thead><tbody>{% for v in vitals %}<tr><td class="ps-3">{{ v.date.strftime('%d.%m. %H:%M') }}</td><td><strong>{{ v.value_sys }}/{{ v.value_dia }}</strong></td><td>{{ v.value_pulse }} bpm</td><td><form action="/delete_entry/vital/{{ v.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></td></tr>{% endfor %}</tbody></table></div></div></div>
+                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>RR</th><th>Puls</th><th style="width:50px"></th></tr></thead><tbody>{% for v in vitals %}<tr><td class="ps-3">{{ v.date.strftime('%d.%m. %H:%M') }}</td><td><strong>{{ v.value_sys }}/{{ v.value_dia }}</strong></td><td>{{ v.value_pulse }} bpm</td><td><div class="d-flex gap-1"><button class="btn btn-link btn-sm text-primary p-0" onclick="openEditModal('vital', {{ v.id }})"><i class="bi bi-pencil"></i></button><form action="/delete_entry/vital/{{ v.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></div></td></tr>{% endfor %}</tbody></table></div></div></div>
                 </div>
             </div>
 
             <div class="tab-pane fade" id="weight" role="tabpanel">
                 <div class="row g-4">
-                    <div class="col-md-4"><div class="card"><div class="card-header">Gewicht</div><div class="card-body"><form action="/add_weight" method="POST"><input type="date" name="weight_date" class="form-control mb-3" value="{{ now.strftime('%Y-%m-%d') }}"><input type="number" step="0.1" name="weight_val" class="form-control mb-3" placeholder="kg"><button class="btn btn-secondary w-100">Add</button></form></div></div></div>
-                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>kg</th><th>BMI</th><th style="width:50px"></th></tr></thead><tbody>{% for w in weights %}<tr><td class="ps-3">{{ w.date.strftime('%d.%m.%Y') }}</td><td>{{ w.weight }}</td><td>{% if profile and profile.height_cm %}{{ (w.weight / ((profile.height_cm/100)**2))|round(1) }}{% endif %}</td><td><form action="/delete_entry/weight/{{ w.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></td></tr>{% endfor %}</tbody></table></div></div></div>
+                    <div class="col-md-4"><div class="card"><div class="card-header">Gewicht & Körperzusammensetzung</div><div class="card-body">
+                        <form action="/add_weight" method="POST">
+                            <div class="row g-2 mb-2">
+                                <div class="col-6"><input type="date" name="weight_date" class="form-control" value="{{ now.strftime('%Y-%m-%d') }}"></div>
+                                <div class="col-6"><input type="time" name="weight_time" class="form-control" value="{{ now.strftime('%H:%M') }}"></div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6"><input type="number" step="0.1" name="weight_val" class="form-control mb-2" placeholder="Gewicht (kg)" required></div>
+                                <div class="col-6"><input type="number" step="0.1" name="bmi" class="form-control mb-2" placeholder="BMI"></div>
+                                <div class="col-6"><input type="number" step="0.1" name="fat_percentage" class="form-control mb-2" placeholder="Körperfett %"></div>
+                                <div class="col-6"><input type="number" step="0.1" name="skeletal_muscle" class="form-control mb-2" placeholder="Skelettmuskel %"></div>
+                                <div class="col-6"><input type="number" step="0.1" name="muscle_mass" class="form-control mb-2" placeholder="Muskelmasse kg"></div>
+                                <div class="col-6"><input type="number" step="0.1" name="weight_protein" class="form-control mb-2" placeholder="Protein %"></div>
+                                <div class="col-6"><input type="number" step="1" name="bmr" class="form-control mb-2" placeholder="Grundumsatz kcal"></div>
+                                <div class="col-6"><input type="number" step="0.1" name="fat_free_mass" class="form-control mb-2" placeholder="Fettfreie Masse kg"></div>
+                                <div class="col-6"><input type="number" step="0.1" name="subcutaneous_fat" class="form-control mb-2" placeholder="Subkutanes Fett %"></div>
+                                <div class="col-6"><input type="number" step="1" name="visceral_fat" class="form-control mb-2" placeholder="Viszerales Fett"></div>
+                                <div class="col-6"><input type="number" step="0.1" name="body_water" class="form-control mb-2" placeholder="Körperwasser %"></div>
+                                <div class="col-6"><input type="number" step="0.1" name="bone_mass" class="form-control mb-2" placeholder="Knochenmasse kg"></div>
+                            </div>
+                            <button class="btn btn-secondary w-100 mt-2">Speichern</button>
+                        </form>
+                    </div></div></div>
+                    <div class="col-md-8"><div class="card"><div class="card-body p-0" style="overflow-x: auto;"><table class="table table-sm small"><thead><tr><th class="ps-3">Datum</th><th>kg</th><th>BMI</th><th>Fett%</th><th>Muskel%</th><th>Protein%</th><th>BMR</th><th style="width:50px"></th></tr></thead><tbody>{% for w in weights %}<tr><td class="ps-3">{{ w.date.strftime('%d.%m. %H:%M') }}</td><td><strong>{{ w.weight }}</strong></td><td>{{ w.bmi or ((w.weight / ((profile.height_cm/100)**2))|round(1) if profile and profile.height_cm else '') }}</td><td>{{ w.fat_percentage or '' }}</td><td>{{ w.skeletal_muscle or '' }}</td><td>{{ w.protein or '' }}</td><td>{{ w.bmr or '' }}</td><td><div class="d-flex gap-1"><button class="btn btn-link btn-sm text-primary p-0" onclick="openEditModal('weight', {{ w.id }})"><i class="bi bi-pencil"></i></button><form action="/delete_entry/weight/{{ w.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></div></td></tr>{% endfor %}</tbody></table></div></div></div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="steps" role="tabpanel">
+                <div class="row g-4">
+                    <div class="col-md-4"><div class="card"><div class="card-header">Schritte</div><div class="card-body"><form action="/add_steps" method="POST"><input type="date" name="steps_date" class="form-control mb-3" value="{{ now.strftime('%Y-%m-%d') }}"><input type="number" name="steps_count" class="form-control mb-3" placeholder="Anzahl"><button class="btn btn-warning w-100 text-white">Speichern</button></form></div></div></div>
+                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>Schritte</th><th style="width:70px"></th></tr></thead><tbody>{% for s in steps %}<tr><td class="ps-3">{{ s.date.strftime('%d.%m.%Y') }}</td><td><strong>{{ s.count }}</strong></td><td><div class="d-flex gap-1"><button class="btn btn-link btn-sm text-primary p-0" onclick="openEditModal('steps', {{ s.id }})"><i class="bi bi-pencil"></i></button><form action="/delete_entry/steps/{{ s.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></div></td></tr>{% endfor %}</tbody></table></div></div></div>
                 </div>
             </div>
 
@@ -159,30 +211,50 @@
                 <div class="row g-4">
                     <div class="col-md-4">
                         <div class="card mb-3"><div class="card-header">Anlegen</div><div class="card-body"><form action="/add_medication_def" method="POST"><input type="text" name="name" class="form-control mb-2" placeholder="Name"><input type="text" name="unit" class="form-control mb-2" placeholder="Einheit"><input type="text" name="common_dose" class="form-control mb-2" placeholder="Dosen (1, 2, 50)"><button class="btn btn-info btn-sm w-100 text-white">Anlegen</button></form></div></div>
+                        <div class="card mb-3"><div class="card-header">Medikamente verwalten</div><div class="card-body p-0">
+                            <table class="table table-sm small mb-0">
+                                <thead><tr><th class="ps-3">Name</th><th style="width:70px"></th></tr></thead>
+                                <tbody>
+                                    {% for m in meds_def %}
+                                    <tr>
+                                        <td class="ps-3">{{ m.name }}</td>
+                                        <td>
+                                            <div class="d-flex gap-1">
+                                                <button class="btn btn-link btn-sm text-primary p-0" onclick="openEditModal('med_def', {{ m.id }})"><i class="bi bi-pencil"></i></button>
+                                                <form action="/delete_entry/med_def/{{ m.id }}" method="POST">
+                                                    <button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div></div>
                         <div class="card"><div class="card-header">Log</div><div class="card-body"><form action="/add_medication_entry" method="POST" id="medLogForm"><input type="date" name="date" class="form-control mb-2" value="{{ now.strftime('%Y-%m-%d') }}"><select name="med_id" id="medSelect" class="form-select mb-2" onchange="updateDoseOptions()">{% for m in meds_def %}<option value="{{ m.id }}" data-unit="{{ m.unit }}" data-doses="{{ m.common_dose }}">{{ m.name }}</option>{% endfor %}</select><div id="doseQuickSelect" class="mb-2 d-flex flex-wrap gap-1"></div><input type="text" name="amount_custom" id="medAmountCustom" class="form-control mb-2" placeholder="Menge"><button class="btn btn-primary w-100">Loggen</button></form></div></div>
                     </div>
-                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>Name</th><th>Menge</th><th style="width:50px"></th></tr></thead><tbody>{% for m in meds_log %}<tr><td class="ps-3">{{ m.date.strftime('%d.%m. %H:%M') }}</td><td>{{ m.medication.name }}</td><td>{{ m.amount }} {{ m.medication.unit }}</td><td><form action="/delete_entry/medication/{{ m.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></td></tr>{% endfor %}</tbody></table></div></div></div>
+                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>Name</th><th>Menge</th><th style="width:50px"></th></tr></thead><tbody>{% for m in meds_log %}<tr><td class="ps-3">{{ m.date.strftime('%d.%m. %H:%M') }}</td><td>{{ m.medication.name }}</td><td>{{ m.amount }} {{ m.medication.unit }}</td><td><div class="d-flex gap-1"><button class="btn btn-link btn-sm text-primary p-0" onclick="openEditModal('medication', {{ m.id }})"><i class="bi bi-pencil"></i></button><form action="/delete_entry/medication/{{ m.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></div></td></tr>{% endfor %}</tbody></table></div></div></div>
                 </div>
             </div>
 
             <div class="tab-pane fade" id="sleep" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-md-4"><div class="card"><div class="card-header">Log</div><div class="card-body"><form action="/add_sleep" method="POST"><input type="date" name="date" class="form-control mb-2" value="{{ now.strftime('%Y-%m-%d') }}"><input type="number" step="0.1" name="duration" class="form-control mb-2" placeholder="h"><input type="range" name="quality" class="form-range" min="1" max="5"><button class="btn btn-dark w-100">Save</button></form></div></div></div>
-                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>Dauer</th><th>Qualität</th><th style="width:50px"></th></tr></thead><tbody>{% for s in sleeps %}<tr><td class="ps-3">{{ s.date.strftime('%d.%m.') }}</td><td>{{ s.duration_hours }}h</td><td>{{ "⭐" * s.quality }}</td><td><form action="/delete_entry/sleep/{{ s.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></td></tr>{% endfor %}</tbody></table></div></div></div>
+                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>Dauer</th><th>Qualität</th><th style="width:50px"></th></tr></thead><tbody>{% for s in sleeps %}<tr><td class="ps-3">{{ s.date.strftime('%d.%m.') }}</td><td>{{ s.duration_hours }}h</td><td>{{ "⭐" * s.quality }}</td><td><div class="d-flex gap-1"><button class="btn btn-link btn-sm text-primary p-0" onclick="openEditModal('sleep', {{ s.id }})"><i class="bi bi-pencil"></i></button><form action="/delete_entry/sleep/{{ s.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></div></td></tr>{% endfor %}</tbody></table></div></div></div>
                 </div>
             </div>
 
             <div class="tab-pane fade" id="mood" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-md-4"><div class="card"><div class="card-header">Stimmung</div><div class="card-body"><form action="/add_mood" method="POST"><input type="date" name="date" class="form-control mb-2" value="{{ now.strftime('%Y-%m-%d') }}"><label class="small">Mood</label><input type="range" name="mood" class="form-range"><label class="small">Energy</label><input type="range" name="energy" class="form-range"><textarea name="notes" class="form-control mt-2"></textarea><button class="btn btn-primary w-100 mt-2">Save</button></form></div></div></div>
-                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>Score</th><th>Note</th><th style="width:50px"></th></tr></thead><tbody>{% for m in moods %}<tr><td class="ps-3">{{ m.date.strftime('%d.%m.') }}</td><td>{{ m.mood_score }}/{{ m.energy_score }}</td><td>{{ m.notes }}</td><td><form action="/delete_entry/mood/{{ m.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></td></tr>{% endfor %}</tbody></table></div></div></div>
+                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>Score</th><th>Note</th><th style="width:50px"></th></tr></thead><tbody>{% for m in moods %}<tr><td class="ps-3">{{ m.date.strftime('%d.%m.') }}</td><td>{{ m.mood_score }}/{{ m.energy_score }}</td><td>{{ m.notes }}</td><td><div class="d-flex gap-1"><button class="btn btn-link btn-sm text-primary p-0" onclick="openEditModal('mood', {{ m.id }})"><i class="bi bi-pencil"></i></button><form action="/delete_entry/mood/{{ m.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></div></td></tr>{% endfor %}</tbody></table></div></div></div>
                 </div>
             </div>
 
             <div class="tab-pane fade" id="food" role="tabpanel">
                 <div class="row g-4">
                     <div class="col-md-4"><div class="card"><div class="card-header">Log</div><div class="card-body"><form action="/add_food" method="POST" class="row g-2"><input type="date" name="food_date" class="form-control" value="{{ now.strftime('%Y-%m-%d') }}"><input type="text" name="food_desc" class="form-control" placeholder="Was?"><input type="number" name="food_cal" class="form-control" placeholder="kcal"><input type="number" step="0.1" name="food_pro" class="form-control" placeholder="P"><input type="number" step="0.1" name="food_carb" class="form-control" placeholder="C"><input type="number" step="0.1" name="food_fat" class="form-control" placeholder="F"><button class="btn btn-warning w-100 mt-2 text-white">Add</button></form></div></div></div>
-                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>Was</th><th>Makros</th><th>kcal</th><th style="width:50px"></th></tr></thead><tbody>{% for f in foods %}<tr><td class="ps-3">{{ f.date.strftime('%d.%m.') }}</td><td>{{ f.description }}</td><td>{{ f.protein }}/{{ f.carbs }}/{{ f.fat }}</td><td>{{ f.calories }}</td><td><form action="/delete_entry/food/{{ f.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></td></tr>{% endfor %}</tbody></table></div></div></div>
+                    <div class="col-md-8"><div class="card"><div class="card-body p-0"><table class="table"><thead><tr><th class="ps-3">Datum</th><th>Was</th><th>Makros</th><th>kcal</th><th style="width:50px"></th></tr></thead><tbody>{% for f in foods %}<tr><td class="ps-3">{{ f.date.strftime('%d.%m.') }}</td><td>{{ f.description }}</td><td>{{ f.protein }}/{{ f.carbs }}/{{ f.fat }}</td><td>{{ f.calories }}</td><td><div class="d-flex gap-1"><button class="btn btn-link btn-sm text-primary p-0" onclick="openEditModal('food', {{ f.id }})"><i class="bi bi-pencil"></i></button><form action="/delete_entry/food/{{ f.id }}" method="POST"><button class="btn btn-link btn-sm text-danger p-0"><i class="bi bi-trash"></i></button></form></div></td></tr>{% endfor %}</tbody></table></div></div></div>
                 </div>
             </div>
 
@@ -206,8 +278,120 @@
     </div>
 </div>
 
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-card">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title">Eintrag bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm" method="POST">
+                    <div id="editFields"></div>
+                    <button type="submit" class="btn btn-primary w-100 mt-3">Speichern</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+
+    async function openEditModal(type, id) {
+        const response = await fetch(`/get_entry/${type}/${id}`);
+        const data = await response.json();
+        const container = document.getElementById('editFields');
+        const form = document.getElementById('editForm');
+        form.action = `/edit_entry/${type}/${id}`;
+        container.innerHTML = '';
+
+        if (type === 'lab') {
+            container.innerHTML = `
+                <input type="date" name="date" class="form-control mb-2" value="${data.date}" required>
+                <input type="text" name="name" class="form-control mb-2" value="${data.name}" placeholder="Name">
+                <input type="number" step="0.01" name="value" class="form-control mb-2" value="${data.value}" placeholder="Wert">
+                <input type="text" name="unit" class="form-control mb-2" value="${data.unit}" placeholder="Einheit">
+                <input type="number" step="0.01" name="min_norm" class="form-control mb-2" value="${data.min_norm}" placeholder="Min">
+                <input type="number" step="0.01" name="max_norm" class="form-control mb-2" value="${data.max_norm}" placeholder="Max">
+            `;
+        } else if (type === 'vital') {
+            container.innerHTML = `
+                <input type="date" name="date" class="form-control mb-2" value="${data.date}" required>
+                <input type="time" name="time" class="form-control mb-2" value="${data.time}" required>
+                <input type="number" name="sys" class="form-control mb-2" value="${data.sys}" placeholder="Sys">
+                <input type="number" name="dia" class="form-control mb-2" value="${data.dia}" placeholder="Dia">
+                <input type="number" name="pulse" class="form-control mb-2" value="${data.pulse}" placeholder="Puls">
+            `;
+        } else if (type === 'steps') {
+            container.innerHTML = `
+                <input type="date" name="steps_date" class="form-control mb-2" value="${data.date}" required>
+                <input type="number" name="steps_count" class="form-control mb-2" value="${data.count}" placeholder="Anzahl">
+            `;
+        } else if (type === 'weight') {
+            container.innerHTML = `
+                <input type="date" name="weight_date" class="form-control mb-2" value="${data.date}" required>
+                <input type="time" name="weight_time" class="form-control mb-2" value="${data.time || '00:00'}" required>
+                <input type="number" step="0.1" name="weight_val" class="form-control mb-2" value="${data.weight}" placeholder="kg">
+                <input type="number" step="0.1" name="bmi" class="form-control mb-2" value="${data.bmi||''}" placeholder="BMI">
+                <input type="number" step="0.1" name="fat_percentage" class="form-control mb-2" value="${data.fat_percentage||''}" placeholder="Körperfett %">
+                <input type="number" step="0.1" name="skeletal_muscle" class="form-control mb-2" value="${data.skeletal_muscle||''}" placeholder="Skelettmuskel %">
+                <input type="number" step="0.1" name="muscle_mass" class="form-control mb-2" value="${data.muscle_mass||''}" placeholder="Muskelmasse kg">
+                <input type="number" step="0.1" name="weight_protein" class="form-control mb-2" value="${data.protein||''}" placeholder="Protein %">
+                <input type="number" step="1" name="bmr" class="form-control mb-2" value="${data.bmr||''}" placeholder="Grundumsatz kcal">
+                <input type="number" step="0.1" name="fat_free_mass" class="form-control mb-2" value="${data.fat_free_mass||''}" placeholder="Fettfreie Masse kg">
+                <input type="number" step="0.1" name="subcutaneous_fat" class="form-control mb-2" value="${data.subcutaneous_fat||''}" placeholder="Subkutanes Fett %">
+                <input type="number" step="1" name="visceral_fat" class="form-control mb-2" value="${data.visceral_fat||''}" placeholder="Viszerales Fett">
+                <input type="number" step="0.1" name="body_water" class="form-control mb-2" value="${data.body_water||''}" placeholder="Körperwasser %">
+                <input type="number" step="0.1" name="bone_mass" class="form-control mb-2" value="${data.bone_mass||''}" placeholder="Knochenmasse kg">
+            `;
+        } else if (type === 'food') {
+            container.innerHTML = `
+                <input type="date" name="food_date" class="form-control mb-2" value="${data.date}" required>
+                <input type="text" name="food_desc" class="form-control mb-2" value="${data.description}" placeholder="Was?">
+                <input type="number" name="food_cal" class="form-control mb-2" value="${data.calories}" placeholder="kcal">
+                <input type="number" step="0.1" name="food_pro" class="form-control mb-2" value="${data.protein}" placeholder="P">
+                <input type="number" step="0.1" name="food_carb" class="form-control mb-2" value="${data.carbs}" placeholder="C">
+                <input type="number" step="0.1" name="food_fat" class="form-control mb-2" value="${data.fat}" placeholder="F">
+            `;
+        } else if (type === 'sleep') {
+            container.innerHTML = `
+                <input type="date" name="date" class="form-control mb-2" value="${data.date}" required>
+                <input type="number" step="0.1" name="duration" class="form-control mb-2" value="${data.duration}" placeholder="h">
+                <input type="range" name="quality" class="form-range" min="1" max="5" value="${data.quality}">
+            `;
+        } else if (type === 'mood') {
+            container.innerHTML = `
+                <input type="date" name="date" class="form-control mb-2" value="${data.date}" required>
+                <input type="range" name="mood" class="form-range" min="1" max="10" value="${data.mood}">
+                <input type="range" name="energy" class="form-range" min="1" max="10" value="${data.energy}">
+                <textarea name="notes" class="form-control mt-2">${data.notes||''}</textarea>
+            `;
+        } else if (type === 'medication') {
+            container.innerHTML = `
+                <input type="date" name="date" class="form-control mb-2" value="${data.date}" required>
+                <input type="text" name="amount_custom" class="form-control mb-2" value="${data.amount}" placeholder="Menge">
+            `;
+        } else if (type === 'marker') {
+            container.innerHTML = `
+                <input type="text" name="name" class="form-control mb-2" value="${data.name}" placeholder="Name" required>
+                <input type="text" name="unit" class="form-control mb-2" value="${data.unit}" placeholder="Einheit">
+                <input type="number" step="0.01" name="min_norm" class="form-control mb-2" value="${data.min_norm}" placeholder="Min">
+                <input type="number" step="0.01" name="max_norm" class="form-control mb-2" value="${data.max_norm}" placeholder="Max">
+            `;
+        } else if (type === 'med_def') {
+            container.innerHTML = `
+                <input type="text" name="name" class="form-control mb-2" value="${data.name}" placeholder="Name" required>
+                <input type="text" name="unit" class="form-control mb-2" value="${data.unit}" placeholder="Einheit">
+                <input type="text" name="common_dose" class="form-control mb-2" value="${data.common_dose}" placeholder="Dosen (1, 2, 50)">
+            `;
+        }
+
+        editModal.show();
+    }
+
     function toggleDarkMode() { document.body.classList.toggle('dark-mode'); localStorage.setItem('darkMode', document.body.classList.contains('dark-mode')); }
     if (localStorage.getItem('darkMode') === 'true') { document.body.classList.add('dark-mode'); }
 
@@ -259,7 +443,22 @@
             
             if(data.lab_values.length>0) h += `<div class="col-12"><div class="card"><div class="card-header bg-primary text-white">Labor</div><div class="card-body p-0"><table class="table table-sm mb-0">` + data.lab_values.map(l => `<tr><td class="ps-3">${l.name}</td><td><strong>${l.value} ${l.unit}</strong></td></tr>`).join('') + `</table></div></div></div>`;
             if(data.vitals.length>0) h += `<div class="col-md-6"><div class="card"><div class="card-header bg-danger text-white">Vitals</div><div class="card-body p-0"><table class="table table-sm mb-0">` + data.vitals.map(v => `<tr><td class="ps-3">${v.time}</td><td><strong>${v.sys}/${v.dia}</strong></td><td>${v.pulse} bpm</td></tr>`).join('') + `</table></div></div></div>`;
-            if(data.weights.length>0) h += `<div class="col-md-6"><div class="card"><div class="card-header bg-primary text-white">Weights</div><div class="card-body p-0"><table class="table table-sm mb-0">` + data.weights.map(w => `<tr><td class="ps-3">Messung</td><td><strong>${w.weight}kg</strong></td></tr>`).join('') + `</table></div></div></div>`;
+            if(data.weights.length>0) h += `<div class="col-12"><div class="card"><div class="card-header bg-primary text-white">Gewicht & Körperzusammensetzung</div><div class="card-body p-0"><table class="table table-sm mb-0">` + data.weights.map(w => {
+                let rows = `<tr class="table-light"><td colspan="2" class="ps-3"><strong>Messung um ${w.date.split(' ')[1] || ''} Uhr</strong></td></tr>`;
+                rows += `<tr><td class="ps-3">Gewicht</td><td><strong>${w.weight} kg</strong></td></tr>`;
+                if(w.bmi) rows += `<tr><td class="ps-3">BMI</td><td>${w.bmi}</td></tr>`;
+                if(w.fat_percentage) rows += `<tr><td class="ps-3">Körperfett</td><td>${w.fat_percentage} %</td></tr>`;
+                if(w.skeletal_muscle) rows += `<tr><td class="ps-3">Skelettmuskeln</td><td>${w.skeletal_muscle} %</td></tr>`;
+                if(w.muscle_mass) rows += `<tr><td class="ps-3">Muskelmasse</td><td>${w.muscle_mass} kg</td></tr>`;
+                if(w.protein) rows += `<tr><td class="ps-3">Protein</td><td>${w.protein} %</td></tr>`;
+                if(w.bmr) rows += `<tr><td class="ps-3">Grundumsatz</td><td>${w.bmr} kcal</td></tr>`;
+                if(w.fat_free_mass) rows += `<tr><td class="ps-3">Fettfreie Masse</td><td>${w.fat_free_mass} kg</td></tr>`;
+                if(w.subcutaneous_fat) rows += `<tr><td class="ps-3">Subkutanes Fett</td><td>${w.subcutaneous_fat} %</td></tr>`;
+                if(w.visceral_fat) rows += `<tr><td class="ps-3">Viszerales Fett</td><td>${w.visceral_fat}</td></tr>`;
+                if(w.body_water) rows += `<tr><td class="ps-3">Körperwasser</td><td>${w.body_water} %</td></tr>`;
+                if(w.bone_mass) rows += `<tr><td class="ps-3">Knochenmasse</td><td>${w.bone_mass} kg</td></tr>`;
+                return rows;
+            }).join('') + `</table></div></div></div>`;
             if(data.foods.length>0) h += `<div class="col-12"><div class="card"><div class="card-header bg-warning text-dark">Ernährung</div><div class="card-body p-0"><table class="table table-sm mb-0">` + data.foods.map(f => `<tr><td class="ps-3">${f.description}</td><td>${f.calories}kcal</td><td>${f.protein}/${f.carbs}/${f.fat}</td></tr>`).join('') + `</table></div></div></div>`;
             if(data.meds.length>0) h += `<div class="col-md-6"><div class="card"><div class="card-header bg-info text-white">Meds</div><div class="card-body p-0"><table class="table table-sm mb-0">` + data.meds.map(m => `<tr><td class="ps-3">${m.name}</td><td><strong>${m.amount} ${m.unit}</strong></td></tr>`).join('') + `</table></div></div></div>`;
             if(data.moods.length>0) h += `<div class="col-md-6"><div class="card"><div class="card-header bg-success text-white">Mood</div><div class="card-body">` + data.moods.map(m => `<div><strong>${m.mood}/10</strong>: ${m.notes||''}</div>`).join('') + `</div></div></div>`;

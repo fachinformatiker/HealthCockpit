@@ -6,9 +6,11 @@ services:
     volumes:
       - uploads:/app/uploads
       - export:/app/export
+      - /etc/localtime:/etc/localtime:ro
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/labdata
       - SECRET_KEY=your_secret_key_here
+      - TZ=Europe/Berlin
     depends_on:
       - db
 
@@ -18,10 +20,12 @@ services:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=labdata
+      - TZ=Europe/Berlin
     ports:
       - "2345:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
 
 volumes:
   postgres_data:
