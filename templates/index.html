@@ -85,6 +85,44 @@
             
             <div class="tab-pane fade show active" id="dash" role="tabpanel">
                 <h2 class="mb-4">Dashboard</h2>
+                
+                {% if weight_stats %}
+                <div class="alert alert-primary border-0 shadow-sm mb-4" style="background: linear-gradient(90deg, var(--sidebar-active), #6366f1); color: white;">
+                    <div class="row align-items-center text-center">
+                        <div class="col-md-3 border-end border-white border-opacity-25">
+                            <small class="opacity-75 d-block">Bereits verloren</small>
+                            <h4 class="mb-0 fw-bold">{{ weight_stats.lost_so_far }} kg</h4>
+                        </div>
+                        <div class="col-md-3 border-end border-white border-opacity-25">
+                            <small class="opacity-75 d-block">Noch zu verlieren</small>
+                            <h4 class="mb-0 fw-bold">{{ weight_stats.remaining }} kg</h4>
+                        </div>
+                        <div class="col-md-3 border-end border-white border-opacity-25">
+                            <small class="opacity-75 d-block">Zielgewicht</small>
+                            <h4 class="mb-0 fw-bold">{{ profile.target_weight }} kg</h4>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="opacity-75 d-block">Voraussichtlich am</small>
+                            <h4 class="mb-0 fw-bold">
+                                {% if weight_stats.est_date != 'N/A' %}
+                                    {{ weight_stats.est_date }}
+                                    {% if weight_stats.days_to_go is not none %} 
+                                        <span style="font-size: 0.8rem; opacity: 0.8;">(in {{ weight_stats.days_to_go }} Tagen)</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span style="font-size: 0.9rem; opacity: 0.8;">2. Messung nötig...</span>
+                                {% endif %}
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                {% elif profile and not profile.target_weight %}
+                <div class="alert alert-light border shadow-sm mb-4 d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-info-circle me-2"></i> Setze ein <strong>Zielgewicht</strong> im Profil, um deinen Fortschritt zu tracken!</span>
+                    <button class="btn btn-sm btn-outline-primary" onclick="switchTab('profile-tab')">Zum Profil</button>
+                </div>
+                {% endif %}
+
                 <div class="row g-3 mb-4">
                     <div class="col-md-3"><div class="card dash-card h-100"><div class="card-body"><h6>Gewicht</h6><div class="dash-val">{% if weights %}{{ weights[0].weight }}kg{% else %}--{% endif %}</div>{% if weights and profile and profile.height_cm %}<small class="text-primary">BMI: {{ (weights[0].weight / ((profile.height_cm/100)**2))|round(1) }}</small>{% endif %}</div></div></div>
                     <div class="col-md-3"><div class="card dash-card border-info h-100"><div class="card-body"><h6>Wasser (Heute)</h6><div class="dash-val">{{ water_today }}ml</div><div class="btn-group btn-group-sm"><form action="/add_water" method="POST"><input type="hidden" name="amount" value="250"><button class="btn btn-outline-info">+250</button></form><form action="/add_water" method="POST"><input type="hidden" name="amount" value="500"><button class="btn btn-outline-info ms-1">+500</button></form></div></div></div></div>
@@ -271,7 +309,7 @@
             </div>
 
             <div class="tab-pane fade" id="profile" role="tabpanel">
-                <div class="card mx-auto mt-5" style="max-width: 500px;"><div class="card-header text-center">Profil</div><div class="card-body"><form action="/save_profile" method="POST"><div class="mb-3"><label>Größe (cm)</label><input type="number" step="0.1" name="height" class="form-control" value="{{ profile.height_cm if profile else '' }}"></div><div class="mb-3"><label>Geburtsdatum</label><input type="date" name="birthdate" class="form-control" value="{{ profile.birthdate if profile else '' }}"></div><button class="btn btn-success w-100">Save</button></form></div></div>
+                <div class="card mx-auto mt-5" style="max-width: 500px;"><div class="card-header text-center">Profil</div><div class="card-body"><form action="/save_profile" method="POST"><div class="mb-3"><label>Größe (cm)</label><input type="number" step="0.1" name="height" class="form-control" value="{{ profile.height_cm if profile else '' }}"></div><div class="mb-3"><label>Zielgewicht (kg)</label><input type="number" step="0.1" name="target_weight" class="form-control" value="{{ profile.target_weight if profile else '' }}"></div><div class="mb-3"><label>Geburtsdatum</label><input type="date" name="birthdate" class="form-control" value="{{ profile.birthdate if profile else '' }}"></div><button class="btn btn-success w-100">Save</button></form></div></div>
             </div>
 
         </div>

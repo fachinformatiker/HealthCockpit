@@ -144,6 +144,7 @@ class Profile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     height_cm = db.Column(db.Float)
     birthdate = db.Column(db.Date)
+    target_weight = db.Column(db.Float)
 
 class Medication(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -251,8 +252,54 @@ def index():
             macros['kcal'] += (f.calories or 0); macros['p'] += (f.protein or 0); macros['c'] += (f.carbs or 0); macros['f'] += (f.fat or 0)
         recent_history.append({'date': d, 'steps': day_steps.count if day_steps else None, 'weight': day_weight.weight if day_weight else None, 'sleep': day_sleep.duration_hours if day_sleep else None, 'macros': macros})
 
-    profile = Profile.query.first()
-    return render_template('index.html', labs=lab_values, markers=markers, vitals=vitals, weights=weights, foods=foods, activities=activities, steps=steps, meds_def=meds_def, meds_log=meds_log, moods=moods, profile=profile, sleeps=sleeps, water_today=water_today, recent_history=recent_history, sort_order=sort_order, now=datetime.now()) 
+    try:
+        profile = Profile.query.first()
+    except Exception:
+        profile = None
+    
+    # Weight loss stats
+    weight_stats = None
+    if weights and profile and getattr(profile, 'target_weight', None):
+        sorted_weights = sorted(weights, key=lambda x: x.date)
+        first_w_ever = sorted_weights[0]
+        last_w = sorted_weights[-1]
+        
+        lost_so_far = first_w_ever.weight - last_w.weight
+        remaining = last_w.weight - profile.target_weight
+        
+        # Calculate loss rate using a "recent window" (last 30 days) for better accuracy
+        now_dt = datetime.now()
+        thirty_days_ago = now_dt - pd.Timedelta(days=30)
+        recent_weights = [w for w in sorted_weights if w.date >= thirty_days_ago]
+        
+        # If we don't have enough recent data (at least 7 days apart), use all data
+        if len(recent_weights) >= 2 and (recent_weights[-1].date - recent_weights[0].date).days >= 7:
+            rate_weights = recent_weights
+        else:
+            rate_weights = sorted_weights
+
+        days_diff = (rate_weights[-1].date - rate_weights[0].date).days
+        weight_diff = rate_weights[0].weight - rate_weights[-1].weight
+        
+        days_to_go = None
+        est_date = None
+        daily_rate = 0
+        
+        if days_diff > 0: # Show projection as soon as we have at least 2 measurements at different times
+            daily_rate = weight_diff / days_diff
+            if daily_rate > 0:
+                days_to_go = int(remaining / daily_rate)
+                est_date = now_dt + pd.Timedelta(days=days_to_go)
+            
+        weight_stats = {
+            'lost_so_far': round(lost_so_far, 1),
+            'remaining': round(remaining, 1),
+            'days_to_go': days_to_go,
+            'est_date': est_date.strftime('%d.%m.%Y') if est_date else 'N/A',
+            'daily_rate': round(daily_rate, 3)
+        }
+
+    return render_template('index.html', labs=lab_values, markers=markers, vitals=vitals, weights=weights, foods=foods, activities=activities, steps=steps, meds_def=meds_def, meds_log=meds_log, moods=moods, profile=profile, sleeps=sleeps, water_today=water_today, recent_history=recent_history, sort_order=sort_order, now=datetime.now(), weight_stats=weight_stats) 
 
 # --- CRUD Routes ---
 
@@ -260,7 +307,9 @@ def index():
 def save_profile():
     p = Profile.query.first() or Profile()
     if not p.id: db.session.add(p)
-    p.height_cm = safe_float(request.form.get('height')); bd = request.form.get('birthdate')
+    p.height_cm = safe_float(request.form.get('height'))
+    p.target_weight = safe_float(request.form.get('target_weight'))
+    bd = request.form.get('birthdate')
     if bd: p.birthdate = parse_date_str(bd)
     db.session.commit(); return redirect(url_for('index'))
 
@@ -501,38 +550,110 @@ def generate_pdf():
         for x in Steps.query.all(): add(x.date, f"Schritte: {x.count}", "S")
         for x in MoodEntry.query.all(): add(x.date, f"Mood: {x.mood_score}/10", "M")
         for x in SleepEntry.query.all(): add(datetime.combine(x.date, datetime.min.time()), f"Schlaf: {x.duration_hours}h", "SL")
+        
+        # Add food entries to PDF
+        for x in FoodEntry.query.all():
+            macro_str = f"P:{x.protein or 0}g C:{x.carbs or 0}g F:{x.fat or 0}g"
+            add(x.date, f"Essen: {x.description} ({x.calories or 0}kcal, {macro_str})", "F")
+
+        # Weight loss stats for PDF
+        profile = Profile.query.first()
+        weights_all = WeightEntry.query.order_by(WeightEntry.date).all()
+        if weights_all and profile and getattr(profile, 'target_weight', None):
+            first_w_ever = weights_all[0]
+            last_w = weights_all[-1]
+            lost = first_w_ever.weight - last_w.weight
+            rem = last_w.weight - profile.target_weight
+            
+            # Use 30 day window for rate
+            now_dt = datetime.now()
+            thirty_days_ago = now_dt - pd.Timedelta(days=30)
+            recent = [w for w in weights_all if w.date >= thirty_days_ago]
+            
+            if len(recent) >= 2 and (recent[-1].date - recent[0].date).days >= 7:
+                rate_weights = recent
+            else:
+                rate_weights = weights_all
+
+            days_diff = (rate_weights[-1].date - rate_weights[0].date).days
+            weight_diff = rate_weights[0].weight - rate_weights[-1].weight
+            
+            est_str = "N/A"
+            duration_str = ""
+            if days_diff > 0:
+                rate = weight_diff / days_diff
+                if rate > 0:
+                    days_to_go = int(rem / rate)
+                    est_date = now_dt + pd.Timedelta(days=days_to_go)
+                    est_str = est_date.strftime('%d.%m.%Y')
+                    duration_str = f" (in {days_to_go} Tagen)"
+            
+            pdf.set_font("Arial", 'B', 14); pdf.cell(w, 10, txt=clean("Gewichts-Statistik"), ln=1)
+            pdf.set_font("Arial", '', 12)
+            pdf.cell(w, 8, txt=clean(f"Bereits verloren: {round(lost, 1)} kg"), ln=1)
+            pdf.cell(w, 8, txt=clean(f"Noch zu verlieren: {round(rem, 1)} kg"), ln=1)
+            pdf.cell(w, 8, txt=clean(f"Zielgewicht: {profile.target_weight} kg"), ln=1)
+            pdf.cell(w, 8, txt=clean(f"Voraussichtliches Ziel-Datum: {est_str}{duration_str}"), ln=1)
+            pdf.ln(5)
+
         for d_str in sorted(data_by_date.keys(), reverse=True):
             pdf.set_fill_color(230, 230, 230); pdf.set_font("Arial", 'B', 12); pdf.cell(w, 10, txt=clean(d_str), ln=1, fill=True); pdf.set_font("Arial", '', 10)
             for e in sorted(data_by_date[d_str], key=lambda x: x['time']): pdf.multi_cell(w, 6, txt=f"[{e['time']}] {e['text']}")
+        
+        # --- Add Graphs Page ---
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', 16)
+        pdf.cell(w, 15, txt=clean("Grafische Auswertungen"), ln=1, align='C')
+        
+        import tempfile
+        
+        def add_graph(plt_func, title):
+            plt.figure(figsize=(8, 4))
+            plt_func()
+            plt.title(title)
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp:
+                plt.savefig(tmp.name, format='png', dpi=150)
+                plt.close()
+                pdf.image(tmp.name, x=15, w=180)
+                os.unlink(tmp.name)
+
+        # Weight Graph
+        if weights_all:
+            def plot_weight():
+                plt.plot([x.date for x in weights_all], [x.weight for x in weights_all], marker='o', color='#3498db')
+                plt.ylabel('kg')
+            add_graph(plot_weight, "Gewichtsverlauf")
+            pdf.ln(5)
+
+        # Blood Pressure Graph
+        vitals_all = VitalValue.query.order_by(VitalValue.date).all()
+        if vitals_all:
+            def plot_vitals():
+                dates = [x.date for x in vitals_all]
+                plt.plot(dates, [x.value_sys for x in vitals_all], label='Sys', color='#ff6b6b')
+                plt.plot(dates, [x.value_dia for x in vitals_all], label='Dia', color='#3498db')
+                plt.legend()
+                plt.ylabel('mmHg')
+            add_graph(plot_vitals, "Blutdruckverlauf")
+            pdf.ln(5)
+
+        # Steps Graph
+        steps_all = Steps.query.order_by(Steps.date).all()
+        if steps_all:
+            def plot_steps():
+                plt.bar([x.date for x in steps_all], [x.count for x in steps_all], color='#f1c40f')
+                plt.ylabel('Schritte')
+            add_graph(plot_steps, "Schritte (Täglich)")
+
         pdf_output = pdf.output(dest='S')
         if isinstance(pdf_output, str): pdf_output = pdf_output.encode('latin-1')
         return send_file(io.BytesIO(pdf_output), mimetype='application/pdf', as_attachment=True, download_name='report.pdf')
     except Exception as e: return str(e), 500
 
-with app.app_context():
-    db.create_all()
-    # Simple migration hack for existing installations
-    try:
-        cols = [
-            ("fat_percentage", "FLOAT"), ("bmi", "FLOAT"), ("skeletal_muscle", "FLOAT"),
-            ("muscle_mass", "FLOAT"), ("protein", "FLOAT"), ("bmr", "FLOAT"),
-            ("fat_free_mass", "FLOAT"), ("subcutaneous_fat", "FLOAT"), ("visceral_fat", "FLOAT"),
-            ("body_water", "FLOAT"), ("bone_mass", "FLOAT")
-        ]
-        for col_name, col_type in cols:
-            try:
-                db.session.execute(db.text(f"ALTER TABLE weight_entry ADD COLUMN {col_name} {col_type}"))
-            except Exception:
-                pass # Column likely already exists
-        
-        db.session.execute(db.text("ALTER TABLE medication ADD COLUMN IF NOT EXISTS unit VARCHAR(50)"))
-        db.session.execute(db.text("ALTER TABLE medication ADD COLUMN IF NOT EXISTS common_dose VARCHAR(100)"))
-        db.session.commit()
-    except Exception as e:
-        print(f"Migration check: {e}")
-        db.session.rollback()
-    
-    if not os.path.exists(app.config['UPLOAD_FOLDER']): os.makedirs(app.config['UPLOAD_FOLDER'])
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
