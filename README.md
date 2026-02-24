@@ -1,4 +1,4 @@
-# HealthCockpit 🛡️ v1.2.0
+# HealthCockpit 🛡️ v1.2.5
 
 A comprehensive, private health dashboard to track vitals, laboratory results, nutrition, medication, and lifestyle habits.
 
@@ -9,9 +9,15 @@ A comprehensive, private health dashboard to track vitals, laboratory results, n
 - **⚖️ Body Composition:** Detailed weight tracking (Fat%, BMI, Muscle Mass, etc.) and smart weight loss projection.
 - **🍎 Nutrition:** Detailed macro-logging (P/C/F) and calorie tracking with PDF export.
 - **📄 PDF Export:** Professional health reports with integrated graphs and meal macros.
+- **💾 Full Data Export:** Comprehensive JSON export including all tracked metrics and profile data.
 - **🌙 Dark Mode:** Premium high-contrast interface.
 
 ## Changelog
+
+### v1.2.5 (Februar 2026)
+- **NEW:** **Full JSON Export:** Every data point (Water, Sleep, Mood, Meds, Profile, etc.) is now included in the export.
+- **FIX:** Corrected Mood and Energy sliders to use a proper 1-10 scale with clear labels.
+- **FIX:** Enhanced database migration resilience for existing installations.
 
 ### v1.2.0 (Februar 2026)
 - **NEW:** Integrated graphs (Weight, BP, Steps) into the PDF report.

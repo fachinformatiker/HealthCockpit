@@ -146,6 +146,13 @@ class Profile(db.Model):
     birthdate = db.Column(db.Date)
     target_weight = db.Column(db.Float)
 
+    def to_dict(self):
+        return {
+            'height_cm': self.height_cm,
+            'birthdate': self.birthdate.strftime('%Y-%m-%d') if self.birthdate else None,
+            'target_weight': self.target_weight
+        }
+
 class Medication(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
@@ -186,6 +193,9 @@ class WaterEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False) 
     amount_ml = db.Column(db.Integer, nullable=False)
+
+    def to_dict(self):
+        return {'id': self.id, 'date': self.date.strftime('%Y-%m-%d'), 'amount_ml': self.amount_ml}
 
 class SleepEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -514,11 +524,23 @@ def chart_data():
 @app.route('/export')
 def export_data():
     data = {
-        'lab_values': [{'date': l.date.strftime('%Y-%m-%d'), 'name': l.name, 'value': l.value, 'unit': l.unit} for l in LabValue.query.all()],
-        'weights': [{'date': w.date.strftime('%Y-%m-%d'), 'weight': w.weight} for w in WeightEntry.query.all()],
-        'steps': [{'date': s.date.strftime('%Y-%m-%d'), 'count': s.count} for s in Steps.query.all()]
+        'lab_values': [l.to_dict() for l in LabValue.query.all()],
+        'weights': [w.to_dict() for w in WeightEntry.query.all()],
+        'steps': [s.to_dict() for s in Steps.query.all()],
+        'vitals': [v.to_dict() for v in VitalValue.query.all()],
+        'food': [f.to_dict() for f in FoodEntry.query.all()],
+        'activities': [a.to_dict() for a in Activity.query.all()],
+        'medication_definitions': [m.to_dict() for m in Medication.query.all()],
+        'medication_log': [m.to_dict() for m in MedicationEntry.query.all()],
+        'mood': [m.to_dict() for m in MoodEntry.query.all()],
+        'sleep': [s.to_dict() for s in SleepEntry.query.all()],
+        'water': [w.to_dict() for w in WaterEntry.query.all()],
+        'profile': Profile.query.first().to_dict() if Profile.query.first() else {},
+        'markers': [m.to_dict() for m in Marker.query.all()]
     }
-    res = jsonify(data); res.headers['Content-Disposition'] = 'attachment; filename=health_export.json'; return res
+    res = jsonify(data)
+    res.headers['Content-Disposition'] = 'attachment; filename=health_export.json'
+    return res
 
 @app.route('/pdf')
 def generate_pdf():
