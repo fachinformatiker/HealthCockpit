@@ -43,8 +43,11 @@ A comprehensive, private health dashboard to track vitals, laboratory results, n
    ```
 2. **Access:** Open `http://localhost:8130` in your browser.
 
-*Created for privacy-focused health management by fachinformatiker.*
+*Created for privacy-focused health management by Patrick Szalewicz.*
 
-<img width="1256" height="859" alt="Dashboard" src="https://github.com/user-attachments/assets/2fe12835-f1fc-4a09-aab0-d776b09d256c" />
 
-<img width="1253" height="859" alt="Analytics" src="https://github.com/user-attachments/assets/43cd7dbf-a3fa-48e5-ac83-054095a5d5d4" />
+<img width="1227" height="859" alt="Dashboard" src="https://github.com/user-attachments/assets/e15936b5-6ccc-4569-9a37-62a303c68c6d" />
+
+<img width="1225" height="856" alt="Analytics" src="https://github.com/user-attachments/assets/be927a0b-f793-4074-90cf-8b95ff0bff01" />
+
+<img width="1221" height="852" alt="Daily view" src="https://github.com/user-attachments/assets/32abcc1b-274a-4ac6-bbdb-e49e55d3c2b4" />
